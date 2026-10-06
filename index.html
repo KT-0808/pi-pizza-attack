@@ -1,0 +1,529 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<title>π PIZZA ATTACK</title>
+<style>
+:root{
+  --viz-card:#ffffff;
+  --viz-panel:#f5f6f8;
+  --viz-text:#111827;
+  --viz-muted:#6b7280;
+  --viz-border:#d1d5db;
+  --viz-accent:#2563eb;
+  --viz-series-2:#34d399;
+  --viz-series-3:#ef4444;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:#eef1f5;color:var(--viz-text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif}
+body{padding:12px}
+button,input{font:inherit;color:inherit}
+button{cursor:pointer;background:transparent}
+#pizza-radian-game{width:100%;max-width:1200px;margin:0 auto;font-size:14px}
+#pizza-radian-game .game-shell{position:relative;width:100%;border:1px solid var(--viz-border);border-radius:16px;background:var(--viz-card);overflow:hidden}
+#pizza-radian-game .topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:7px 12px;border-bottom:1px solid var(--viz-border)}
+#pizza-radian-game .title{font-weight:900;letter-spacing:.06em;white-space:nowrap}
+#pizza-radian-game .mode-group{display:flex;gap:6px}
+#pizza-radian-game .mode-btn,#pizza-radian-game .den-btn{min-height:34px;border:1px solid var(--viz-border);border-radius:9px;padding:3px 12px;font-weight:900}
+#pizza-radian-game .mode-btn[aria-pressed="true"],#pizza-radian-game .den-btn[aria-pressed="true"]{background:var(--viz-accent);color:white;border-color:var(--viz-accent)}
+#pizza-radian-game .game-body{display:grid;grid-template-columns:minmax(0,1.65fr) minmax(245px,.6fr)}
+#pizza-radian-game .battle{position:relative;overflow:hidden;min-width:0;padding:8px 14px;border-right:1px solid var(--viz-border)}
+#pizza-radian-game .hud{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+#pizza-radian-game .mission{font-size:23px;line-height:1.12;font-weight:950}
+#pizza-radian-game .stats{font-size:10px;line-height:1.4;text-align:right;white-space:nowrap}
+#pizza-radian-game .timer-shell{height:7px;border-radius:999px;overflow:hidden;border:1px solid var(--viz-border);background:var(--viz-panel)}
+#pizza-radian-game .timer-bar{height:100%;width:100%;background:var(--viz-accent);transition:width .1s linear}
+#pizza-radian-game .timer-bar.danger{background:var(--viz-series-3)}
+#pizza-radian-game .arena{position:relative;display:grid;grid-template-columns:1fr 1.25fr 1fr;align-items:end;gap:10px;min-height:214px;margin-top:1px}
+#pizza-radian-game .fighter{position:relative;z-index:5;text-align:center}
+#pizza-radian-game .fighter-icon{font-size:54px;line-height:1}
+#pizza-radian-game .fighter-name{font-size:9px;font-weight:900;letter-spacing:.04em;margin-bottom:3px}
+#pizza-radian-game .player{align-self:end}
+#pizza-radian-game .enemy-unit{position:absolute;right:6%;bottom:18px;z-index:21;display:flex;flex-direction:column;align-items:center;will-change:transform}
+#pizza-radian-game .enemy-walk{display:flex;flex-direction:column;align-items:center;transform-origin:center bottom}
+#pizza-radian-game .enemy-walk.walking{animation:enemyWalk .48s ease-in-out infinite}
+@keyframes enemyWalk{0%,100%{transform:translateY(0) rotate(-1.5deg)}50%{transform:translateY(-5px) rotate(1.5deg)}}
+#pizza-radian-game .hanging-sign{display:flex;flex-direction:column;align-items:center;margin-top:-4px;transform-origin:50% 0}
+#pizza-radian-game .enemy-walk.walking .hanging-sign{animation:signSwing .8s ease-in-out infinite}
+@keyframes signSwing{0%,100%{transform:rotate(-3deg)}50%{transform:rotate(3deg)}}
+#pizza-radian-game .chains{display:flex;justify-content:space-between;width:38px;height:9px;margin-top:-2px;margin-bottom:-1px}
+#pizza-radian-game .chain{width:2px;height:9px;background:var(--viz-muted);border-radius:2px;opacity:.8}
+#pizza-radian-game .enemy-angle{padding:5px 11px;border:2px solid var(--viz-border);border-radius:9px;background:var(--viz-panel);font-size:28px;line-height:1;font-weight:950;white-space:nowrap;box-shadow:0 2px 0 var(--viz-border)}
+#pizza-radian-game .enemy-angle.danger{border-color:var(--viz-series-3)}
+#pizza-radian-game .enemy-unit.timeout-grow .enemy-walk{animation:timeoutGrow .45s ease-out forwards}
+@keyframes timeoutGrow{0%{transform:scale(1)}60%{transform:scale(1.42) translateY(-6px)}100%{transform:scale(1.34) translateY(-3px)}}
+#pizza-radian-game .center-zone{align-self:end;text-align:center;min-width:0;padding-bottom:1px}
+#pizza-radian-game .current-formula{min-height:45px;display:flex;align-items:center;justify-content:center;font-size:31px;line-height:1;font-weight:900}
+#pizza-radian-game .frac{display:inline-flex;flex-direction:column;align-items:center;line-height:1.02;min-width:1.55em}
+#pizza-radian-game .frac .num{padding:0 .14em .08em;border-bottom:2px solid currentColor}
+#pizza-radian-game .frac .den{padding:.08em .14em 0}
+#pizza-radian-game .small-frac{font-size:14px}
+#pizza-radian-game .pizza-label{font-size:9px;font-weight:900;letter-spacing:.18em;color:var(--viz-muted)}
+#pizza-radian-game .pizza-svg{width:125px;height:125px;display:block;margin:-3px auto -7px}
+#pizza-radian-game .pizza-caption{min-height:23px;display:flex;justify-content:center;align-items:center;gap:4px;font-size:9px;color:var(--viz-muted)}
+#pizza-radian-game .slice{stroke:var(--viz-border);stroke-width:1.3}
+#pizza-radian-game .slice.on{fill:var(--viz-series-2)}
+#pizza-radian-game .slice.off{fill:var(--viz-panel)}
+#pizza-radian-game .enemy.hit{animation:enemyHit .42s ease-out forwards}
+@keyframes enemyHit{0%{transform:scale(1);opacity:1}40%{transform:translateX(8px) rotate(8deg) scale(.9)}100%{transform:translateX(22px) rotate(15deg) scale(.3);opacity:0}}
+#pizza-radian-game .player.hurt{animation:playerHurt .45s ease-out}
+@keyframes playerHurt{0%,100%{transform:translateX(0)}25%{transform:translateX(-8px) rotate(-5deg)}55%{transform:translateX(6px) rotate(4deg)}}
+#pizza-radian-game .pizza-shot{position:absolute;left:18%;bottom:34px;width:47px;height:47px;opacity:0;z-index:30;pointer-events:none}
+#pizza-radian-game .pizza-shot.fire{animation:pizzaThrow .6s cubic-bezier(.18,.72,.24,1)}
+@keyframes pizzaThrow{0%{opacity:1;transform:translate(0,0) rotate(0) scale(.65)}45%{opacity:1;transform:translate(190px,-26px) rotate(800deg) scale(1)}90%{opacity:1;transform:translate(400px,-3px) rotate(1600deg) scale(.8)}100%{opacity:0;transform:translate(430px,0) rotate(1800deg) scale(.4)}}
+#pizza-radian-game .impact{position:absolute;right:6%;bottom:29px;width:64px;height:64px;border:3px solid var(--viz-series-3);border-radius:50%;opacity:0;z-index:29}
+#pizza-radian-game .impact.boom{animation:impactBoom .35s ease-out}
+@keyframes impactBoom{0%{opacity:1;transform:scale(.15)}50%{opacity:.9;transform:scale(1)}100%{opacity:0;transform:scale(1.65)}}
+#pizza-radian-game .fireball{position:absolute;right:8%;bottom:44px;width:38px;height:38px;border-radius:50%;opacity:0;z-index:31;background:radial-gradient(circle at 35% 35%,#fff5a8 0 12%,#ffd447 13% 32%,#ff7626 33% 60%,#c9281c 61% 100%);box-shadow:0 0 14px rgba(255,95,30,.75)}
+#pizza-radian-game .fireball:after{content:'';position:absolute;left:30px;top:8px;width:50px;height:20px;border-radius:999px;background:linear-gradient(90deg,rgba(255,130,30,.9),rgba(255,210,70,.2),transparent);filter:blur(2px)}
+#pizza-radian-game .fireball.attack{animation:fireballAttack .62s cubic-bezier(.2,.72,.24,1)}
+@keyframes fireballAttack{0%{opacity:1;transform:translate(0,0) scale(.55)}50%{opacity:1;transform:translate(-215px,-14px) scale(1)}92%{opacity:1;transform:translate(-415px,0) scale(.9)}100%{opacity:0;transform:translate(-440px,0) scale(.45)}}
+#pizza-radian-game .player-impact{position:absolute;left:5%;bottom:26px;width:66px;height:66px;border-radius:50%;opacity:0;z-index:30;background:radial-gradient(circle,rgba(255,240,120,.95),rgba(255,105,25,.55) 42%,transparent 72%)}
+#pizza-radian-game .player-impact.boom{animation:playerBoom .38s ease-out}
+@keyframes playerBoom{0%{opacity:1;transform:scale(.2)}55%{opacity:1;transform:scale(1.05)}100%{opacity:0;transform:scale(1.6)}}
+#pizza-radian-game .controls{min-width:0;padding:9px 10px;display:flex;flex-direction:column;gap:7px}
+#pizza-radian-game .section-label{font-size:10px;font-weight:900;color:var(--viz-muted)}
+#pizza-radian-game .den-row{display:grid;grid-template-columns:repeat(4,1fr);gap:5px}
+#pizza-radian-game .num-display{display:grid;grid-template-columns:1fr 38px;gap:5px}
+#pizza-radian-game .num-input{width:100%;min-height:38px;border:1px solid var(--viz-border);border-radius:9px;background:transparent;text-align:center;font-size:21px;font-weight:900}
+#pizza-radian-game .back-btn{min-height:38px;border:1px solid var(--viz-border);border-radius:9px;font-weight:900}
+#pizza-radian-game .digit-pad{display:grid;grid-template-columns:repeat(5,1fr);gap:5px}
+#pizza-radian-game .digit-btn{min-height:34px;border:1px solid var(--viz-border);border-radius:9px;font-size:16px;font-weight:900;background:var(--viz-panel)}
+#pizza-radian-game .throw-btn{min-height:41px;border:0;border-radius:10px;background:var(--viz-accent);color:white;font-weight:900;font-size:15px}
+#pizza-radian-game .message{min-height:25px;font-size:10px;line-height:1.3;text-align:center;font-weight:800;display:flex;justify-content:center;align-items:center;gap:5px;flex-wrap:wrap}
+#pizza-radian-game .input-reset{min-height:44px;width:100%;border:2px solid var(--viz-border);border-radius:10px;font-size:15px;font-weight:950;background:var(--viz-panel)}
+#pizza-radian-game .clear-overlay{position:absolute;inset:0;z-index:100;display:none;align-items:center;justify-content:center;background:rgba(255,255,255,.9);text-align:center}
+#pizza-radian-game .clear-overlay.show{display:flex}
+#pizza-radian-game .clear-title{font-size:46px;line-height:1;font-weight:950;letter-spacing:.04em}
+#pizza-radian-game .clear-sub{margin-top:10px;font-size:16px;font-weight:900}
+@media(min-width:700px){#pizza-radian-game .game-shell{aspect-ratio:16/9}#pizza-radian-game .game-body{height:calc(100% - 49px)}}
+@media(max-width:699px){body{padding:6px}#pizza-radian-game .game-body{grid-template-columns:1fr}#pizza-radian-game .battle{border-right:0;border-bottom:1px solid var(--viz-border)}#pizza-radian-game .game-shell{aspect-ratio:auto}}
+@media(prefers-reduced-motion:reduce){#pizza-radian-game *{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div id="pizza-radian-game">
+<div class="game-shell">
+<div id="clearOverlay" class="clear-overlay" aria-live="assertive"><div><div class="clear-title">ゲームクリア！</div><div class="clear-sub">10問連続正解！</div></div></div>
+
+<div class="topbar">
+  <div style="display:flex;align-items:center;gap:8px"><span class="title">π PIZZA ATTACK</span><span id="modeDescription" style="font-size:9px;color:var(--viz-muted)">時間無制限</span></div>
+  <div class="mode-group">
+    <button type="button" class="mode-btn" data-mode="practice" aria-pressed="true">練習</button>
+    <button type="button" class="mode-btn" data-mode="play" aria-pressed="false">PLAY</button>
+  </div>
+</div>
+
+<div class="game-body">
+<section class="battle">
+  <div class="hud">
+    <div>
+      <div style="font-size:9px;color:var(--viz-muted)"><span id="modeLabel">PRACTICE</span> ・ STAGE <span id="stageText">1</span>/10</div>
+      <div class="mission" style="margin-top:4px">弧度法に変換して<br>攻撃せよ</div>
+    </div>
+    <div class="stats">
+      <div>HP <span id="hpText" style="font-weight:700">∞</span></div>
+      <div>SCORE <span id="scoreText" style="font-weight:700">0</span></div>
+      <div>COMBO <span id="comboText" style="font-weight:700">0</span>/10</div>
+    </div>
+  </div>
+
+  <div id="timerArea" style="margin-top:4px;display:none">
+    <div style="margin-bottom:4px;display:flex;justify-content:space-between;font-size:9px;font-weight:700"><span>TIME</span><span id="timeText">30.0</span></div>
+    <div class="timer-shell"><div id="timerBar" class="timer-bar"></div></div>
+  </div>
+
+  <div class="arena">
+    <div id="player" class="fighter player">
+      <div class="fighter-icon">🧑‍🍳</div>
+      <div class="fighter-name">PIZZA NINJA</div>
+    </div>
+
+    <div class="center-zone">
+      <div id="currentFormula" class="current-formula"></div>
+      <div class="pizza-label">π PIZZA</div>
+      <svg id="pizzaSvg" class="pizza-svg" viewBox="0 0 200 200" aria-label="弧度法を表すピザ"></svg>
+      <div id="pizzaCaption" class="pizza-caption"></div>
+    </div>
+
+    <div id="enemyUnit" class="enemy-unit">
+      <div id="enemyWalk" class="enemy-walk">
+        <div id="enemy" class="fighter enemy">
+          <div class="fighter-name">ANGLE MONSTER</div>
+          <div id="enemyIcon" class="fighter-icon">👾</div>
+          <div id="enemyHp" style="font-size:10px;font-weight:700">◆</div>
+        </div>
+        <div class="hanging-sign">
+          <div class="chains"><span class="chain"></span><span class="chain"></span></div>
+          <div id="angleThreat" class="enemy-angle"><span id="degreeText">60</span>°</div>
+        </div>
+      </div>
+    </div>
+
+    <div id="pizzaShot" class="pizza-shot">
+      <svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="45" fill="#d49a52"/><circle cx="50" cy="50" r="38" fill="#f2c55c"/><circle cx="34" cy="34" r="7" fill="#b84937"/><circle cx="67" cy="35" r="6" fill="#b84937"/><circle cx="60" cy="67" r="7" fill="#b84937"/><circle cx="31" cy="64" r="5" fill="#b84937"/><path d="M50 12L50 88M12 50L88 50M23 23L77 77M77 23L23 77" stroke="#dbad4e" stroke-width="2"/></svg>
+    </div>
+    <div id="impact" class="impact"></div>
+    <div id="fireball" class="fireball"></div>
+    <div id="playerImpact" class="player-impact"></div>
+  </div>
+</section>
+
+<form id="answerForm" class="controls">
+  <div>
+    <div class="section-label">① 分母</div>
+    <div class="den-row" style="margin-top:4px">
+      <button type="button" class="den-btn" data-den="6">6</button>
+      <button type="button" class="den-btn" data-den="4">4</button>
+      <button type="button" class="den-btn" data-den="3" aria-pressed="true">3</button>
+      <button type="button" class="den-btn" data-den="2">2</button>
+    </div>
+  </div>
+
+  <div>
+    <div class="section-label">② 分子</div>
+    <div class="num-display" style="margin-top:4px">
+      <input id="numInput" class="num-input" type="text" readonly inputmode="none" aria-label="分子">
+      <button id="backspaceBtn" type="button" class="back-btn">←</button>
+    </div>
+  </div>
+
+  <div class="digit-pad">
+    <button type="button" class="digit-btn" data-digit="1">1</button>
+    <button type="button" class="digit-btn" data-digit="2">2</button>
+    <button type="button" class="digit-btn" data-digit="3">3</button>
+    <button type="button" class="digit-btn" data-digit="4">4</button>
+    <button type="button" class="digit-btn" data-digit="5">5</button>
+    <button type="button" class="digit-btn" data-digit="6">6</button>
+    <button type="button" class="digit-btn" data-digit="7">7</button>
+    <button type="button" class="digit-btn" data-digit="8">8</button>
+    <button type="button" class="digit-btn" data-digit="9">9</button>
+    <button type="button" class="digit-btn" data-digit="0">0</button>
+  </div>
+
+  <button type="submit" class="throw-btn">🍕 THROW!</button>
+  <button type="button" id="inputResetBtn" class="input-reset">入力RESET</button>
+  <div id="message" class="message" aria-live="polite">10問連続正解を目指せ！</div>
+</form>
+</div>
+</div>
+</div>
+
+<script>
+(()=>{
+const root=document.getElementById('pizza-radian-game');
+if(!root||root.dataset.ready==='1')return;
+root.dataset.ready='1';
+
+const targets=[30,45,60,90,120,135,150,180,210,225,240,270,300,315,330,360];
+const icons=['👾','👻','🤖','🐲','👹','🛸','💀','👑'];
+
+let mode='practice',denominator=3,stage=1,score=0,combo=0,playerHp=3,current=60,locked=false,timer=null,countdown=null,enemyAlive=true,timeLeft=30,clearTimer=null;
+
+const q=s=>root.querySelector(s),qa=s=>[...root.querySelectorAll(s)];
+const degreeText=q('#degreeText'),angleThreat=q('#angleThreat'),enemyUnit=q('#enemyUnit'),enemyWalk=q('#enemyWalk'),
+stageText=q('#stageText'),scoreText=q('#scoreText'),comboText=q('#comboText'),hpText=q('#hpText'),
+input=q('#numInput'),currentFormula=q('#currentFormula'),msg=q('#message'),svg=q('#pizzaSvg'),caption=q('#pizzaCaption'),
+enemy=q('#enemy'),enemyHpEl=q('#enemyHp'),enemyIcon=q('#enemyIcon'),pizzaShot=q('#pizzaShot'),impact=q('#impact'),
+player=q('#player'),fireball=q('#fireball'),playerImpact=q('#playerImpact'),timerArea=q('#timerArea'),
+timerBar=q('#timerBar'),timeText=q('#timeText'),modeLabel=q('#modeLabel'),modeDescription=q('#modeDescription'),
+clearOverlay=q('#clearOverlay');
+
+function gcd(a,b){a=Math.abs(a);b=Math.abs(b);while(b){[a,b]=[b,a%b]}return a||1}
+function fractionHTML(n,d,small=false){
+  const cls=small?'frac small-frac':'frac';
+  if(n===0)return'0';
+  if(n===d)return'π';
+  if(n===2*d)return'2π';
+  return `<span class="${cls}"><span class="num">${n===1?'π':n+'π'}</span><span class="den">${d}</span></span>`;
+}
+function reducedText(deg){
+  let n=deg,d=180,g=gcd(n,d);n/=g;d/=g;
+  if(d===1)return n===1?'π':`${n}π`;
+  return`${n===1?'':n}π/${d}`;
+}
+function polar(cx,cy,r,a){
+  const rad=a*Math.PI/180;
+  return[cx+r*Math.cos(rad),cy-r*Math.sin(rad)];
+}
+function wedgePath(start,end){
+  const[x1,y1]=polar(100,100,78,start),[x2,y2]=polar(100,100,78,end),large=end-start>180?1:0;
+  return`M100 100 L${x1} ${y1} A78 78 0 ${large} 0 ${x2} ${y2} Z`;
+}
+function numerator(){
+  if(input.value==='')return null;
+  const n=Number(input.value);
+  return Number.isInteger(n)&&n>=0&&n<=99?n:null;
+}
+function setEnemyProgress(p){
+  p=Math.max(0,Math.min(1,p));
+  const x=-440*p,y=-56*p*(1-p),scale=1+.10*p;
+  enemyUnit.style.transform=`translate(${x}px,${y}px) scale(${scale})`;
+  angleThreat.classList.toggle('danger',p>=.73);
+}
+function resetEnemyPosition(){
+  enemyUnit.classList.remove('timeout-grow');
+  enemyWalk.classList.remove('walking');
+  setEnemyProgress(0);
+}
+function renderPizza(){
+  const n=numerator(),slices=denominator*2,filled=n===null?0:Math.min(n,slices);
+  let html='<circle cx="100" cy="100" r="84" fill="none" stroke="var(--viz-border)" stroke-width="8" />';
+  for(let i=0;i<slices;i++){
+    const a0=i*360/slices,a1=(i+1)*360/slices;
+    html+=`<path class="slice ${i<filled?'on':'off'}" d="${wedgePath(a0,a1)}"></path>`;
+  }
+  html+='<line x1="100" y1="100" x2="184" y2="100" stroke="var(--viz-text)" stroke-width="2.5"/><circle cx="100" cy="100" r="5" fill="var(--viz-text)" />';
+  svg.innerHTML=html;
+  caption.innerHTML=`<span>1切れ =</span>${fractionHTML(1,denominator,true)}`;
+}
+function render(){
+  stageText.textContent=stage;
+  degreeText.textContent=current;
+  scoreText.textContent=score;
+  comboText.textContent=combo;
+  modeLabel.textContent=mode==='play'?'PLAY':'PRACTICE';
+  hpText.textContent=mode==='play'?'♥'.repeat(playerHp)+'♡'.repeat(3-playerHp):'∞';
+  enemyIcon.textContent=icons[(stage-1)%icons.length];
+  enemyHpEl.textContent=enemyAlive?'◆':'◇';
+
+  const n=numerator();
+  currentFormula.innerHTML=n===null?'':fractionHTML(n,denominator);
+
+  qa('.den-btn').forEach(b=>b.setAttribute('aria-pressed',String(Number(b.dataset.den)===denominator)));
+  qa('.mode-btn').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.mode===mode)));
+  timerArea.style.display=mode==='play'?'block':'none';
+  modeDescription.textContent=mode==='play'?'エネミー接近中':'時間無制限';
+  renderPizza();
+  if(mode!=='play')resetEnemyPosition();
+}
+function clearCountdown(){
+  if(countdown){clearInterval(countdown);countdown=null;}
+}
+function startCountdown(){
+  clearCountdown();
+  if(mode!=='play'||locked)return;
+  timeLeft=30;
+  timeText.textContent='30.0';
+  timerBar.style.width='100%';
+  timerBar.classList.remove('danger');
+  enemyUnit.classList.remove('timeout-grow');
+  enemyWalk.classList.add('walking');
+  setEnemyProgress(0);
+
+  countdown=setInterval(()=>{
+    timeLeft=Math.max(0,timeLeft-.1);
+    const p=(30-timeLeft)/30;
+    timeText.textContent=timeLeft.toFixed(1);
+    timerBar.style.width=`${timeLeft/30*100}%`;
+    timerBar.classList.toggle('danger',timeLeft<=5);
+    setEnemyProgress(p);
+    if(timeLeft<=0){clearCountdown();timeoutMiss();}
+  },100);
+}
+function pickTarget(){
+  const pool=targets.filter(v=>v!==current);
+  current=pool[Math.floor(Math.random()*pool.length)];
+}
+function throwPizza(){
+  pizzaShot.classList.remove('fire');
+  impact.classList.remove('boom');
+  void pizzaShot.offsetWidth;
+  pizzaShot.classList.add('fire');
+  setTimeout(()=>{
+    impact.classList.add('boom');
+    enemy.classList.add('hit');
+  },450);
+}
+function enemyAttack(){
+  fireball.classList.remove('attack');
+  playerImpact.classList.remove('boom');
+  player.classList.remove('hurt');
+  void fireball.offsetWidth;
+  fireball.classList.add('attack');
+  setTimeout(()=>{
+    playerImpact.classList.add('boom');
+    player.classList.add('hurt');
+  },470);
+  setTimeout(()=>player.classList.remove('hurt'),900);
+}
+function blankNumerator(){input.value='';}
+function inputReset(){
+  if(locked)return;
+  denominator=3;
+  blankNumerator();
+  msg.textContent='入力をリセットしました。';
+  render();
+}
+function resetStreak(){combo=0;stage=1;}
+function nextQuestion(){
+  enemy.classList.remove('hit');
+  enemyUnit.classList.remove('timeout-grow');
+  enemyAlive=true;
+  pickTarget();
+  blankNumerator();
+  stage=combo+1;
+  msg.textContent=`連続正解 ${combo}/10`;
+  render();
+  startCountdown();
+}
+function showGameClear(){
+  locked=true;
+  clearCountdown();
+  enemyWalk.classList.remove('walking');
+  clearOverlay.classList.add('show');
+  if(clearTimer)clearTimeout(clearTimer);
+  clearTimer=setTimeout(()=>{
+    clearOverlay.classList.remove('show');
+    resetAll(true);
+  },1900);
+}
+function timeoutMiss(){
+  if(mode!=='play'||locked)return;
+  locked=true;
+  resetStreak();
+  setEnemyProgress(1);
+  enemyWalk.classList.remove('walking');
+  enemyUnit.classList.add('timeout-grow');
+  msg.textContent='TIME UP! エネミーが目前まで接近！';
+
+  setTimeout(()=>{
+    enemyAttack();
+    msg.textContent='火の玉で反撃！';
+  },420);
+
+  setTimeout(()=>{
+    playerHp--;
+    if(playerHp<=0){
+      msg.textContent=`GAME OVER　正解 ${reducedText(current)}`;
+      enemyIcon.textContent='😈';
+      render();
+      return;
+    }
+    pickTarget();
+    blankNumerator();
+    locked=false;
+    msg.textContent='連続正解は0に戻りました。';
+    render();
+    startCountdown();
+  },1100);
+}
+function attack(){
+  if(locked)return;
+  const n=numerator();
+  if(n===null){
+    msg.textContent='分子を選んでください。';
+    return;
+  }
+
+  const correct=n*180===current*denominator;
+
+  if(correct){
+    clearCountdown();
+    enemyWalk.classList.remove('walking');
+    locked=true;
+    combo++;
+    stage=Math.min(combo,10);
+    score+=100+combo*10+(gcd(n,denominator)===1?50:0);
+    enemyAlive=false;
+    throwPizza();
+    msg.innerHTML=`<span>HIT! ${combo}/10</span>${fractionHTML(n,denominator,true)}`;
+    render();
+
+    if(combo>=10){
+      timer=setTimeout(showGameClear,850);
+    }else{
+      timer=setTimeout(()=>{
+        locked=false;
+        nextQuestion();
+      },850);
+    }
+  }else{
+    resetStreak();
+    if(mode==='play'){
+      clearCountdown();
+      enemyWalk.classList.remove('walking');
+      locked=true;
+      enemyAttack();
+      msg.textContent='MISS! 火の玉で反撃！ 連続正解は0へ';
+
+      setTimeout(()=>{
+        playerHp--;
+        if(playerHp<=0){
+          msg.textContent=`GAME OVER　正解 ${reducedText(current)}`;
+          enemyIcon.textContent='😈';
+          render();
+          return;
+        }
+        blankNumerator();
+        locked=false;
+        render();
+        startCountdown();
+      },650);
+    }else{
+      msg.textContent='MISS! 連続正解は0に戻りました。';
+      blankNumerator();
+      render();
+    }
+  }
+}
+function resetAll(toInitial=false){
+  if(timer)clearTimeout(timer);
+  if(clearTimer)clearTimeout(clearTimer);
+  clearCountdown();
+  if(toInitial)mode='practice';
+
+  stage=1;
+  score=0;
+  combo=0;
+  playerHp=3;
+  denominator=3;
+  current=60;
+  locked=false;
+  enemyAlive=true;
+  timeLeft=30;
+
+  blankNumerator();
+  enemy.classList.remove('hit');
+  player.classList.remove('hurt');
+  clearOverlay.classList.remove('show');
+  resetEnemyPosition();
+  msg.textContent='10問連続正解を目指せ！';
+  render();
+  if(mode==='play')startCountdown();
+}
+
+qa('.mode-btn').forEach(btn=>btn.addEventListener('click',()=>{
+  mode=btn.dataset.mode;
+  resetAll(false);
+}));
+qa('.den-btn').forEach(btn=>btn.addEventListener('click',()=>{
+  denominator=Number(btn.dataset.den);
+  render();
+}));
+qa('.digit-btn').forEach(btn=>btn.addEventListener('click',()=>{
+  if(locked)return;
+  const d=btn.dataset.digit;
+  if(input.value.length>=2)return;
+  if(input.value==='0')input.value=d;
+  else input.value+=d;
+  render();
+}));
+q('#backspaceBtn').addEventListener('click',()=>{
+  if(locked)return;
+  input.value=input.value.slice(0,-1);
+  render();
+});
+q('#inputResetBtn').addEventListener('click',inputReset);
+q('#answerForm').addEventListener('submit',e=>{
+  e.preventDefault();
+  attack();
+});
+render();
+})();
+</script>
+</body>
+</html>
